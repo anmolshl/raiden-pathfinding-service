@@ -15,7 +15,7 @@ def test_put_balance(
     api_sut: ServiceApi,
     api_url: str,
     token_networks: List[TokenNetwork],
-    token_network_addresses: List[Address]
+    token_network_addresses_from_registry: List[Address]
 ):
     url = api_url + '/balance'
 
@@ -27,7 +27,7 @@ def test_put_balance(
             transferred_amount=3,
             locksroot='',
             channel_identifier=123,
-            token_network_address=token_network_addresses[0],
+            token_network_address=token_network_addresses_from_registry[0],
             chain_id=321,
             additional_hash='',
             signature=''
@@ -51,7 +51,7 @@ def test_put_balance(
     assert balance_proof.transferred_amount == 3
     assert balance_proof.locksroot == b''
     assert balance_proof.channel_id == 123
-    assert balance_proof.token_network_address == token_network_addresses[0]
+    assert balance_proof.token_network_address == token_network_addresses_from_registry[0]
     assert balance_proof.chain_id == 321
     assert balance_proof.additional_hash == b''
     assert balance_proof.signature == b''
@@ -64,7 +64,7 @@ def test_put_balance(
 def test_put_balance_validation(
     api_sut: ServiceApi,
     api_url: str,
-    token_network_addresses: List[Address]
+    token_network_addresses_from_registry: List[Address]
 ):
     url = api_url + '/balance'
 
@@ -87,7 +87,7 @@ def test_put_balance_validation(
             transferred_amount=3,
             locksroot='',
             channel_identifier=123,
-            token_network_address=to_normalized_address(token_network_addresses[0]),
+            token_network_address=to_normalized_address(token_network_addresses_from_registry[0]),
             chain_id=321,
             additional_hash='',
             signature=''
@@ -106,7 +106,7 @@ def test_put_balance_validation(
             transferred_amount=3,
             locksroot='',
             channel_identifier=123,
-            token_network_address=token_network_addresses[0],
+            token_network_address=token_network_addresses_from_registry[0],
             chain_id=321,
             additional_hash='',
             signature=''
@@ -122,7 +122,7 @@ def test_put_balance_validation(
             transferred_amount=3,
             locksroot='',
             channel_identifier=123,
-            token_network_address=token_network_addresses[0],
+            token_network_address=token_network_addresses_from_registry[0],
             chain_id=321,
             additional_hash='',
             signature=''

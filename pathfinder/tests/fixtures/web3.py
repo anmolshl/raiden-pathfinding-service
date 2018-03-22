@@ -13,15 +13,23 @@ def use_tester(request):
 
 
 @pytest.fixture(scope='session')
-def web3(use_tester: bool, faucet_private_key: str, faucet_address: str):
-    if use_tester:
-        tester = EthereumTester(PyEthereum16Backend())
+def ethereum_tester():
+    return EthereumTester(PyEthereum16Backend())
 
-        provider = EthereumTesterProvider(tester)
+
+@pytest.fixture(scope='session')
+def web3(
+    use_tester: bool,
+    faucet_private_key: str,
+    faucet_address: str,
+    ethereum_tester: EthereumTester
+):
+    if use_tester:
+        provider = EthereumTesterProvider(ethereum_tester)
         web3 = Web3(provider)
 
         # add faucet account to tester
-        res = tester.add_account(faucet_private_key)
+        res = ethereum_tester.add_account(faucet_private_key)
         assert res == faucet_address
 
         # make faucet rich

@@ -3,3 +3,5 @@ from .accounts import *  # flake8: noqa
 from .contracts import *  # flake8: noqa
 from .core import *  # flake8: noqa
 from .web3 import *  # flake8: noqa
+from .client import *  # flake8: noqa
+from .server import *  # flake: noqa

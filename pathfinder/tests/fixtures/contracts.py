@@ -23,10 +23,10 @@ def contract_manager(contracts_path: str):
 
 
 @pytest.fixture(scope='session')
-def token_addresses(
+def token_contracts(
     web3: Web3,
     contract_manager: ContractManager
-) -> List[Address]:
+) -> List[Contract]:
 
     token = web3.eth.contract(
         abi=contract_manager.get_contract_abi('HumanStandardToken'),
@@ -42,7 +42,10 @@ def token_addresses(
             f'TT{i}',  # Token symbol
         ))
 
-        addresses.append(web3.eth.getTransactionReceipt(tx_hash).contractAddress)
+        addresses.append(web3.eth.contract(
+            web3.eth.getTransactionReceipt(tx_hash).contractAddress,
+            abi=contract_manager.get_contract_abi('HumanStandardToken'),
+        ))
 
     return addresses
 
@@ -60,31 +63,6 @@ def secret_registry_address(
 
     tx_hash = secret_registry.deploy()
     return web3.eth.getTransactionReceipt(tx_hash).contractAddress
-
-
-@pytest.fixture(scope='session')
-def token_network_addresses(
-    web3: Web3,
-    contract_manager: ContractManager,
-    token_addresses: List[Address],
-    secret_registry_address: Address,
-) -> List[Address]:
-
-    token_network = web3.eth.contract(
-        abi=contract_manager.get_contract_abi('TokenNetwork'),
-        bytecode=contract_manager.get_contract_bytecode('TokenNetwork')
-    )
-
-    addresses = list()
-    for token_address in token_addresses:
-        tx_hash = token_network.deploy(args=(
-            token_address,
-            secret_registry_address,
-        ))
-
-        addresses.append(web3.eth.getTransactionReceipt(tx_hash).contractAddress)
-
-    return addresses
 
 
 @pytest.fixture(scope='session')
@@ -116,12 +94,13 @@ def token_network_addresses_from_registry(
     web3: Web3,
     contract_manager: ContractManager,
     token_network_registry: Contract,
-    token_addresses: List[Address],
+    token_contracts: List[Contract],
 ) -> List[Address]:
 
     token_network_addresses = []
 
-    for token_address in token_addresses:
+    for contract in token_contracts:
+        token_address = contract.address
         tx = token_network_registry.functions.createERC20TokenNetwork(token_address).transact()
         receipt = web3.eth.getTransactionReceipt(tx)
 
@@ -140,8 +119,6 @@ def token_network_addresses_from_registry(
 def token_network_contracts(
     web3: Web3,
     contract_manager: ContractManager,
-    token_addresses: List[Address],
-    token_network_addresses: List[Address],
     contracts_path: str,
     token_network_addresses_from_registry: List[Address],
 ) -> List[TokenNetworkContract]:
@@ -153,7 +130,7 @@ def token_network_contracts(
                 abi=contract_manager.get_contract_abi('TokenNetwork')
             )
         )
-        for token_network_address in token_network_addresses
+        for token_network_address in token_network_addresses_from_registry
     ]
 
     return contracts
