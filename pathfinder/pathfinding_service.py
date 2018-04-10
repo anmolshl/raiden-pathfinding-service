@@ -5,15 +5,21 @@ import traceback
 from typing import Dict, Optional, List
 
 import gevent
+from web3 import Web3
 from eth_utils import is_checksum_address
 from raiden_libs.blockchain import BlockchainListener
-from raiden_contracts.contract_manager import ContractManager
-from web3 import Web3
-
 from raiden_libs.gevent_error_handler import register_error_handler
-from pathfinder.token_network import TokenNetwork
 from raiden_libs.transport import MatrixTransport
+from raiden_contracts.contract_manager import ContractManager
+
+from pathfinder.token_network import TokenNetwork
 from pathfinder.utils.types import Address
+from pathfinder.utils.snapshot import (
+    get_available_snapshots,
+    get_snapshot_path,
+    save_token_network_snapshot,
+    load_token_network_from_snapshot
+)
 
 log = logging.getLogger(__name__)
 
@@ -179,3 +185,13 @@ class PathfindingService(gevent.Greenlet):
         token_network = TokenNetwork(contract)
 
         self.token_networks[token_network_address] = token_network
+
+    def save_snapshots(self):
+        for address, token_network in self.token_networks.items():
+            path = get_snapshot_path(address, self.token_network_listener.confirmed_head_number)
+            save_token_network_snapshot(path, token_network)
+
+    def load_snapshots(self):
+        for snapshot_path in get_available_snapshots():
+            token_network = load_token_network_from_snapshot(snapshot_path)
+            self.token_networks[token_network.address] = token_network
