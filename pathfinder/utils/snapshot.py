@@ -25,24 +25,24 @@ def get_snapshot_path(address: Address, confirmed_block_number: int) -> str:
     )
 
 
-def get_available_snapshots() -> Dict[Address, List[str]]:
+def get_available_snapshots(basepath: str) -> Dict[Address, List[str]]:
     """ Returns a mapping of token network addresses to snapshots. """
     result = {}
-    for entry in os.scandir(base_path()):
+    for entry in os.scandir(basepath):
         if not entry.is_dir() or not is_checksum_address(entry.name):
             continue
 
         token_network_address = Address(entry.name)
 
         snapshots = []
-        for possible_snapshot in os.scandir(os.path.join(base_path(), entry.name)):
+        for possible_snapshot in os.scandir(os.path.join(basepath, token_network_address)):
             if not possible_snapshot.is_file() or not possible_snapshot.name.endswith(FILE_ENDING):
                 continue
 
             snapshots.append(possible_snapshot.path)
 
         if len(snapshots) > 0:
-            result[token_network_address] = snapshots
+            result[token_network_address] = sorted(snapshots)
 
     return result
 
