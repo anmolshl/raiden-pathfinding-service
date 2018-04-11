@@ -104,6 +104,7 @@ def main(
             log.info('Starting Web3 client...')
             web3 = Web3(HTTPProvider(eth_rpc))
 
+            # FIXME: this is outdated
             module_dir = os.path.dirname(pathfinder.__file__)
             contracts_path = os.path.join(module_dir, 'contract', 'contracts_12032018.json')
             contract_manager = ContractManager(contracts_path)
@@ -122,6 +123,7 @@ def main(
                     contract_manager,
                     transport,
                     token_network_listener,
+                    load_snapshots=True,
                     follow_networks=token_network_addresses)
             else:
                 log.info('Starting TokenNetworkRegistry Listener...')

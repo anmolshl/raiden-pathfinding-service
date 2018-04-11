@@ -47,14 +47,36 @@ def get_available_snapshots(basepath: str) -> Dict[Address, List[str]]:
     return result
 
 
+def get_latest_snapshot(snapshots: List[str]) -> str:
+    """ Returns the latest snapshot from a list of snapshot names. """
+    # TODO: fixme
+    sorted_snapshots = sorted(snapshots)
+    return sorted_snapshots[-1]
+
+
 def save_token_network_snapshot(path: str, token_network: TokenNetwork):
     """ Serializes the token network so it doesn't need to sync from scratch when
     the snapshot is loaded. """
     with open(path, 'wb') as f:
-        pickle.dump(token_network, f, 4)
+        data = dict(
+            channel_id_to_addresses=token_network.channel_id_to_addresses,
+            graph=token_network.G
+        )
+        pickle.dump(data, f, 4)
 
 
-def load_token_network_from_snapshot(snapshot_path: str) -> TokenNetwork:
+def update_token_network_from_snapshot(token_network: TokenNetwork, snapshot_path: str):
     """ Deserializes the token network so it doesn't need to sync from scratch """
     with open(snapshot_path, 'rb') as f:
-        return pickle.load(f)
+        data = pickle.load(f)
+
+        try:
+            # try to load data first
+            channel_id_to_addresses = data['channel_id_to_addresses']
+            graph = data['graph']
+
+            # then update, so it's not update partly
+            token_network.channel_id_to_addresses = channel_id_to_addresses
+            token_network.G = graph
+        except KeyError:
+            raise ValueError('Invalid snapshot')

@@ -175,6 +175,7 @@ def pathfinding_service(
         contracts_manager,
         transport=Mock(),
         token_network_listener=Mock(),
+        load_snapshots=False,
         token_network_registry_listener=Mock()
     )
     pathfinding_service.token_networks = {

@@ -15,10 +15,12 @@ from raiden_contracts.contract_manager import ContractManager
 from pathfinder.token_network import TokenNetwork
 from pathfinder.utils.types import Address
 from pathfinder.utils.snapshot import (
+    base_path,
     get_available_snapshots,
     get_snapshot_path,
+    get_latest_snapshot,
     save_token_network_snapshot,
-    load_token_network_from_snapshot
+    update_token_network_from_snapshot
 )
 
 log = logging.getLogger(__name__)
@@ -41,6 +43,7 @@ class PathfindingService(gevent.Greenlet):
         contract_manager: ContractManager,
         transport: MatrixTransport,
         token_network_listener: BlockchainListener,
+        load_snapshots: bool = True,
         *,
         token_network_registry_listener: BlockchainListener = None,
         follow_networks: List[Address] = None,
@@ -61,7 +64,7 @@ class PathfindingService(gevent.Greenlet):
         assert (
             self.follow_networks is not None or self.token_network_registry_listener is not None
         )
-        self._setup_token_networks()
+        self._setup_token_networks(load_snapshots)
 
         # subscribe to event notifications from blockchain listener
         self.token_network_listener.add_confirmed_listener(
@@ -77,7 +80,12 @@ class PathfindingService(gevent.Greenlet):
             self.handle_channel_closed
         )
 
-    def _setup_token_networks(self):
+    def _setup_token_networks(self, load_snapshots: bool):
+        # load networks from snapshots
+        if load_snapshots:
+            self.load_snapshots(self.follow_networks)
+
+        # TODO: only load snapshots that are desired
         if self.follow_networks:
             for network_address in self.follow_networks:
                 self.create_token_network_for_address(network_address)
@@ -174,24 +182,54 @@ class PathfindingService(gevent.Greenlet):
         log.info(f'Found new token network at {token_network_address}')
         self.create_token_network_for_address(token_network_address)
 
-    def create_token_network_for_address(self, token_network_address: Address):
-        log.info(f'Following token network at {token_network_address}')
+    def create_token_network_for_address(self, token_network_address: Address) -> TokenNetwork:
+        if token_network_address in self.token_networks.keys():
+            return self.token_networks[token_network_address]
+        else:
+            log.info(f'Following token network at {token_network_address}')
+            # TODO: check that no network is duplicated
+            contract = self.web3.eth.contract(
+                token_network_address,
+                abi=self.contract_manager.get_contract_abi('TokenNetwork')
+            )
 
-        contract = self.web3.eth.contract(
-            token_network_address,
-            abi=self.contract_manager.get_contract_abi('TokenNetwork')
-        )
+            token_network = TokenNetwork(contract)
+            self.token_networks[token_network_address] = token_network
 
-        token_network = TokenNetwork(contract)
+            return token_network
 
-        self.token_networks[token_network_address] = token_network
-
+    # FIXME: this need to be called
     def save_snapshots(self):
+        """ Save the current token networks to snapshots. """
         for address, token_network in self.token_networks.items():
             path = get_snapshot_path(address, self.token_network_listener.confirmed_head_number)
             save_token_network_snapshot(path, token_network)
 
-    def load_snapshots(self):
-        for snapshot_path in get_available_snapshots():
-            token_network = load_token_network_from_snapshot(snapshot_path)
-            self.token_networks[token_network.address] = token_network
+    def load_snapshots(self, follow_networks: List[Address] = None):
+        """ Load token networks from available snapshots. """
+        min_block = sys.maxsize
+        for address, snapshot_paths in get_available_snapshots(base_path()).items():
+            # skip if the address is not in follow networks
+            if address not in follow_networks:
+                continue
+
+            latest_snapshot = get_latest_snapshot(snapshot_paths)
+
+            token_network = self.create_token_network_for_address(address)
+            try:
+                min_block_snapshot = update_token_network_from_snapshot(
+                    token_network,
+                    latest_snapshot
+                )
+
+                min_block = min(min_block, min_block_snapshot)
+            except ValueError:
+                log.warn(
+                    "Could not load snapshot '%s' for token network %s",
+                    latest_snapshot,
+                    address
+                )
+
+        self.token_network_listener.sync_start_block = min_block
+        if self.token_network_registry_listener:
+            self.token_network_registry_listener.sync_start_block = min_block
