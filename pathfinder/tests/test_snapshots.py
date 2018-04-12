@@ -4,7 +4,12 @@ import os
 from eth_utils import to_checksum_address
 
 from pathfinder.utils.types import Address
-from pathfinder.utils.snapshot import get_snapshot_path, get_available_snapshots, base_path
+from pathfinder.utils.snapshot import (
+    get_snapshot_path,
+    get_available_snapshots,
+    base_path,
+    get_latest_snapshot
+)
 
 
 def touch_test_file(tmpdir_object, directory, filename):
@@ -56,3 +61,17 @@ def test_snapshot_listing(tmpdir):
     }
 
     tmpdir.remove()
+
+
+def test_get_latest_snapshot():
+    snapshots = [
+        '/path/to/snapshot/block_1.pfs-snapshot',
+        '/path/to/snapshot/block_5.pfs-snapshot',
+        '/path/to/snapshot/block_100.pfs-snapshot',
+        '/path/to/snapshot/block_11.pfs-snapshot',
+        '/path/to/snapshot/block_1000.pfs-snapshot',
+        '/path/to/snapshot/block_50.pfs-snapshot',
+        '/path/to/snapshot/block_111.pfs-snapshot',
+    ]
+
+    assert get_latest_snapshot(snapshots) == '/path/to/snapshot/block_1000.pfs-snapshot'

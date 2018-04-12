@@ -4,6 +4,7 @@ import os
 import pickle
 
 from eth_utils import is_checksum_address, to_checksum_address
+from natsort import natsorted
 
 from pathfinder.token_network import TokenNetwork
 from pathfinder.utils.types import Address
@@ -49,8 +50,7 @@ def get_available_snapshots(basepath: str) -> Dict[Address, List[str]]:
 
 def get_latest_snapshot(snapshots: List[str]) -> str:
     """ Returns the latest snapshot from a list of snapshot names. """
-    # TODO: fixme
-    sorted_snapshots = sorted(snapshots)
+    sorted_snapshots = natsorted(snapshots)
     return sorted_snapshots[-1]
 
 
