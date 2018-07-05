@@ -470,3 +470,14 @@ def test_get_paths(
     response = requests.get(url)
     assert response.status_code == 400
     assert response.json()['error'].startswith('No suitable path found for transfer from')
+
+
+def test_info(
+    api_sut: ServiceApi,
+    api_url: str,
+    token_network_addresses: List[Address]
+):
+    url = api_url + '/info'
+
+    response = requests.get(url)
+    assert response.status_code == 200

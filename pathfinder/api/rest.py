@@ -14,6 +14,7 @@ from raiden_libs.types import Address
 
 from pathfinder.config import API_DEFAULT_PORT, API_HOST, API_PATH
 from pathfinder.pathfinding_service import PathfindingService
+from pathfinder.utils.serialisation import token_network_to_dict
 
 
 class PathfinderResource(Resource):
@@ -229,6 +230,22 @@ class PaymentInfoResource(Resource):
     pass
 
 
+class NetworkInfoResource(PathfinderResource):
+
+    def get(self):
+        result = dict(
+            num_networks=len(self.pathfinding_service.token_networks),
+        )
+
+        result.update(
+            {
+                network.address: token_network_to_dict(network)
+                for network in self.pathfinding_service.token_networks.values()
+            }
+        )
+        return {'result': result}, 200
+
+
 class ServiceApi:
     def __init__(self, pathfinding_service: PathfindingService) -> None:
         self.flask_app = Flask(__name__)
@@ -240,7 +257,8 @@ class ServiceApi:
             ('/<token_network_address>/<channel_id>/balance', ChannelBalanceResource, {}),
             ('/<token_network_address>/<channel_id>/fee', ChannelFeeResource, {}),
             ('/<token_network_address>/paths', PathsResource, {}),
-            ('/<token_network_address>/payment/info', PaymentInfoResource, {})
+            ('/<token_network_address>/payment/info', PaymentInfoResource, {}),
+            ('/info', NetworkInfoResource, {}),
         ]
 
         for endpoint_url, resource, kwargs in resources:
