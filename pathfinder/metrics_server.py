@@ -17,10 +17,9 @@ from requests.exceptions import ConnectionError
 from raiden_libs.test.mocks.dummy_transport import DummyTransport
 
 from pathfinder.pathfinding_service import PathfindingService
-from pathfinder.api.rest import ServiceApi
+from pathfinder.api.rest import NetworkInfoAPI
 
 log = logging.getLogger(__name__)
-
 
 @click.command()
 @click.option(
@@ -74,8 +73,7 @@ def main(
                 token_network_registry_listener=token_network_registry_listener
             )
 
-
-            api = ServiceApi(service)
+            api = NetworkInfoAPI(service)
             api.run(port=5678)
 
             print('Running... http://localhost:5678/info')

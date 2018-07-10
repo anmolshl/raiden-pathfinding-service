@@ -245,6 +245,25 @@ class NetworkInfoResource(PathfinderResource):
         )
         return {'result': result}, 200
 
+class NetworkInfoAPI:
+    def __init__(self, pathfinding_service: PathfindingService) -> None:
+        self.flask_app = Flask(__name__)
+        self.api = Api(self.flask_app)
+        self.rest_server: WSGIServer = None
+        self.server_greenlet: Greenlet = None
+
+        resources: List[Tuple[str, Resource, Dict]] = [
+            ('/info', NetworkInfoResource, {}),
+        ]
+
+        for endpoint_url, resource, kwargs in resources:
+            kwargs['pathfinding_service'] = pathfinding_service
+            self.api.add_resource(resource, endpoint_url, resource_class_kwargs=kwargs)
+
+    def run(self, port: int = API_DEFAULT_PORT):
+        self.rest_server = WSGIServer((API_HOST, port), self.flask_app)
+        self.server_greenlet = gevent.spawn(self.rest_server.serve_forever)
+
 
 class ServiceApi:
     def __init__(self, pathfinding_service: PathfindingService) -> None:
