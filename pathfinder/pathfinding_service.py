@@ -11,6 +11,12 @@ from raiden_libs.gevent_error_handler import register_error_handler
 from raiden_libs.transport import MatrixTransport
 from raiden_libs.types import Address
 from raiden_contracts.contract_manager import ContractManager
+from raiden_contracts.constants import (
+    EVENT_TOKEN_NETWORK_CREATED,
+    EVENT_CHANNEL_OPENED,
+    EVENT_CHANNEL_DEPOSIT,
+    EVENT_CHANNEL_CLOSED,
+)
 from matrix_client.errors import MatrixRequestError
 
 from pathfinder.model import TokenNetwork
@@ -80,15 +86,15 @@ class PathfindingService(gevent.Greenlet):
 
         # subscribe to event notifications from blockchain listener
         self.token_network_listener.add_confirmed_listener(
-            'ChannelOpened',
+            EVENT_CHANNEL_OPENED,
             self.handle_channel_opened
         )
         self.token_network_listener.add_confirmed_listener(
-            'ChannelNewDeposit',
+            EVENT_CHANNEL_DEPOSIT,
             self.handle_channel_new_deposit
         )
         self.token_network_listener.add_confirmed_listener(
-            'ChannelClosed',
+            EVENT_CHANNEL_CLOSED,
             self.handle_channel_closed
         )
 
@@ -98,7 +104,7 @@ class PathfindingService(gevent.Greenlet):
                 self.create_token_network_for_address(network_address)
         else:
             self.token_network_registry_listener.add_confirmed_listener(
-                'TokenNetworkCreated',
+                EVENT_TOKEN_NETWORK_CREATED,
                 self.handle_token_network_created
             )
 
@@ -106,7 +112,7 @@ class PathfindingService(gevent.Greenlet):
         register_error_handler(error_handler)
         self.transport.start()
         self.token_network_listener.start()
-        if self.token_network_registry_listener:
+        if self.token_network_registry_listener is not None:
             self.token_network_registry_listener.start()
 
         self.is_running.wait()
@@ -158,7 +164,7 @@ class PathfindingService(gevent.Greenlet):
         if token_network is None:
             return
 
-        log.debug('Received ChannelOpened event for token network {}'.format(
+        log.info('Received ChannelOpened event for token network {}'.format(
             token_network.address
         ))
 
@@ -178,7 +184,7 @@ class PathfindingService(gevent.Greenlet):
         if token_network is None:
             return
 
-        log.debug('Received ChannelNewDeposit event for token network {}'.format(
+        log.info('Received ChannelNewDeposit event for token network {}'.format(
             token_network.address
         ))
 
@@ -198,7 +204,7 @@ class PathfindingService(gevent.Greenlet):
         if token_network is None:
             return
 
-        log.debug('Received ChannelClosed event for token network {}'.format(
+        log.info('Received ChannelClosed event for token network {}'.format(
             token_network.address
         ))
 
@@ -290,14 +296,14 @@ class PathfindingService(gevent.Greenlet):
 
     def handle_token_network_created(self, event):
         token_network_address = event['args']['token_network_address']
+        token_address = event['args']['token_address']
         assert is_checksum_address(token_network_address)
+        assert is_checksum_address(token_address)
 
         if not self.follows_token_network(token_network_address):
-            log.info(f'Found new token network at {token_network_address}')
+            log.info(f'Found token network for token {token_address} @ {token_network_address}')
             self.create_token_network_for_address(token_network_address)
 
     def create_token_network_for_address(self, token_network_address: Address):
-        log.info(f'Following token network at {token_network_address}')
-
         token_network = TokenNetwork(token_network_address)
         self.token_networks[token_network_address] = token_network

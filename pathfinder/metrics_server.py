@@ -3,16 +3,16 @@ monkey.patch_all()  # isort:skip # noqa
 
 import logging
 import sys
-from typing import List
 
 import click
 from raiden_libs.blockchain import BlockchainListener
 from raiden_contracts.contract_manager import CONTRACT_MANAGER
+from raiden_contracts.constants import (
+    CONTRACT_TOKEN_NETWORK_REGISTRY,
+    CONTRACT_TOKEN_NETWORK,
+)
 from web3 import HTTPProvider, Web3
-from hexbytes import HexBytes
-from eth_utils import is_checksum_address
 from raiden_libs.no_ssl_patch import no_ssl_verification
-from raiden_libs.types import Address
 from requests.exceptions import ConnectionError
 from raiden_libs.test.mocks.dummy_transport import DummyTransport
 
@@ -20,6 +20,7 @@ from pathfinder.pathfinding_service import PathfindingService
 from pathfinder.api.rest import NetworkInfoAPI
 
 log = logging.getLogger(__name__)
+
 
 @click.command()
 @click.option(
@@ -33,7 +34,9 @@ def main(
 ):
     # setup logging
     logging.basicConfig(level=logging.INFO)
-    # logging.getLogger('urllib3.connectionpool').setLevel(logging.DEBUG)
+
+    logging.getLogger('web3').setLevel(logging.INFO)
+    logging.getLogger('urllib3.connectionpool').setLevel(logging.INFO)
 
     log.info("Starting Raiden Metrics Server")
 
@@ -55,14 +58,16 @@ def main(
             token_network_listener = BlockchainListener(
                 web3,
                 CONTRACT_MANAGER,
-                'TokenNetwork',
+                CONTRACT_TOKEN_NETWORK,
+                sync_start_block=3_000_000,
             )
 
             log.info('Starting TokenNetworkRegistry Listener...')
             token_network_registry_listener = BlockchainListener(
                 web3,
                 CONTRACT_MANAGER,
-                'TokenNetworkRegistry',
+                CONTRACT_TOKEN_NETWORK_REGISTRY,
+                sync_start_block=3_000_000,
             )
 
             service = PathfindingService(

@@ -245,6 +245,7 @@ class NetworkInfoResource(PathfinderResource):
         )
         return {'result': result}, 200
 
+
 class NetworkInfoAPI:
     def __init__(self, pathfinding_service: PathfindingService) -> None:
         self.flask_app = Flask(__name__)
